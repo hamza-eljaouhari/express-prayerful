@@ -12,7 +12,10 @@ dotenv.config();
 
 const app = express();
 app.use(express.json());
-app.use(cors());
+// Enable CORS for all routes
+app.use(cors({
+    origin: 'https://hamza-eljaouhari.github.io', // Replace with your frontend URL
+}));
 
 const openai = new OpenAI({
     apiKey: process.env['OPENAI_API_KEY'],
