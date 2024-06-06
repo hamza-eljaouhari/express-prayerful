@@ -190,7 +190,7 @@ app.get('/list-prayers', cors({ origin: 'https://hamza-eljaouhari.github.io' }),
             const key = item.Key;
             const url = `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`;
             if (key.endsWith('.mp3')) {
-                const textKey = key.replace('.mp3', '.txt');
+                const textKey = key.replace('.mp3', '.txt').replace('output', 'prayer');
                 const textCommand = new GetObjectCommand({ Bucket: process.env.S3_BUCKET_NAME, Key: textKey });
                 const textResponse = await s3Client.send(textCommand);
                 const textStream = textResponse.Body;
