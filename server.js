@@ -158,6 +158,18 @@ const languagePrompts = {
     "arabic": "توليد صلاة حول"
 };
 
+const languages = {
+    "english": "en",
+    "french": "fr",
+    "arabic": "ar"
+};
+
+const voices = {
+    "english": { languageCode: "en-US", name: "en-US-Wavenet-D" },
+    "french": { languageCode: "fr-FR", name: "fr-FR-Wavenet-A" },
+    "arabic": { languageCode: "ar-XA", name: "ar-XA-Wavenet-A" }
+};
+
 // Get topics based on language
 app.get('/topics', (req, res) => {
     const { language } = req.query;
