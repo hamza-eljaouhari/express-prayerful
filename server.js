@@ -93,7 +93,7 @@ app.post('/generate-prayer', async (req, res) => {
     try {
         const response = await openai.chat.completions.create({
             model: 'gpt-3.5-turbo',
-            messages: [{ role: 'user', content: `Generate a prayer made directly to God about ${topic} in the style of ${writer};` }],
+            messages: [{ role: 'user', content: `Generate a prayer about ${topic} in ${languages[language]}` }],
         });
 
         const prayer = response.choices[0].message.content.trim();
@@ -104,8 +104,6 @@ app.post('/generate-prayer', async (req, res) => {
             voice: { name: voiceConfig.name, languageCode: voiceConfig.languageCode, ssmlGender: 'FEMALE' },
             audioConfig: { audioEncoding: 'MP3', speakingRate: 1.0, pitch: 0 },
         };
-
-        console.log("Sending to TTS API:", JSON.stringify(ttsPayload, null, 2));
 
         const ttsResponse = await axios.post(
             `https://texttospeech.googleapis.com/v1/text:synthesize?key=${process.env.GOOGLE_API_KEY}`,
@@ -135,7 +133,7 @@ app.post('/generate-prayer', async (req, res) => {
             Key: audioFilePath,
             Body: audioFileStream,
             ContentType: 'audio/mp3',
-            ACL: 'public-read', // Make the file publicly accessible
+            ACL: 'public-read',
         };
 
         const uploadTextParams = {
@@ -143,7 +141,7 @@ app.post('/generate-prayer', async (req, res) => {
             Key: textFilePath,
             Body: textFileStream,
             ContentType: 'text/plain',
-            ACL: 'public-read', // Make the file publicly accessible
+            ACL: 'public-read',
         };
 
         await s3Client.send(new PutObjectCommand(uploadAudioParams));
