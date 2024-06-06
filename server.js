@@ -178,7 +178,7 @@ app.get('/generate-prayer', cors({ origin: 'https://hamza-eljaouhari.github.io' 
     }
 });
 
-app.post('/list-prayers', cors({ origin: 'https://hamza-eljaouhari.github.io' }), async (req, res) => {
+app.get('/list-prayers', cors({ origin: 'https://hamza-eljaouhari.github.io' }), async (req, res) => {
     try {
         const command = new ListObjectsV2Command({
             Bucket: process.env.S3_BUCKET_NAME,
