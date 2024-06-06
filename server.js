@@ -75,6 +75,12 @@ const voices = {
     "arabic": { languageCode: "ar-XA", name: "ar-XA-Wavenet-A" }
 };
 
+const languagePrompts = {
+    "english": "Generate a prayer about",
+    "french": "Générer une prière à propos de",
+    "arabic": "توليد صلاة حول"
+};
+
 app.post('/generate-prayer', async (req, res) => {
     const { topic, writer, language } = req.body;
 
@@ -91,9 +97,10 @@ app.post('/generate-prayer', async (req, res) => {
     }
 
     try {
+        const prompt = `${languagePrompts[language]} ${topic}`;
         const response = await openai.chat.completions.create({
             model: 'gpt-3.5-turbo',
-            messages: [{ role: 'user', content: `Generate a prayer about ${topic} in ${languages[language]}` }],
+            messages: [{ role: 'user', content: prompt }],
         });
 
         const prayer = response.choices[0].message.content.trim();
