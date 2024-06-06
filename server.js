@@ -169,6 +169,30 @@ const languagePrompts = {
     "arabic": "توليد صلاة حول"
 };
 
+// Get topics based on language
+app.get('/topics', (req, res) => {
+    const { language } = req.query;
+    if (language === 'french') {
+        res.json(topics_fr);
+    } else if (language === 'arabic') {
+        res.json(topics_ar);
+    } else {
+        res.json(topics_en);
+    }
+});
+
+// Get writers based on language
+app.get('/writers', (req, res) => {
+    const { language } = req.query;
+    if (language === 'french') {
+        res.json(writers_fr);
+    } else if (language === 'arabic') {
+        res.json(writers_ar);
+    } else {
+        res.json(writers_en);
+    }
+});
+
 const uploadFiles = async (prayer, audioBuffer, language) => {
     const uniqueId = uuidv4();
     const audioFilePath = `output-${uniqueId}-${language}.mp3`;
