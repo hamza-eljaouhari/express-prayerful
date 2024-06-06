@@ -264,4 +264,36 @@ app.post('/generate-prayer', async (req, res) => {
 
 app.get('/list-prayers', async (req, res) => {
     try {
-        const command = new 
+        const command = new ListObjectsV2Command({
+            Bucket: process.env.S3_BUCKET_NAME,
+        });
+
+        const response = await s3Client.send(command);
+
+        const prayers = await Promise.all(response.Contents.map(async (item) => {
+            const key = item.Key;
+            const url = `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`;
+            if (key.endsWith('.mp3')) {
+                const textKey = key.replace('.mp3', '.txt').replace('output', 'prayer');
+                const textCommand = new GetObjectCommand({ Bucket: process.env.S3_BUCKET_NAME, Key: textKey });
+                const textResponse = await s3Client.send(textCommand);
+                const textStream = textResponse.Body;
+                let textData = '';
+
+                for await (const chunk of textStream) {
+                    textData += chunk;
+                }
+
+                return { audioUrl: url, textUrl: url.replace('.mp3', '.txt').replace('output', 'prayer'), text: textData };
+            }
+        }));
+
+        res.json({ prayers: prayers.filter(prayer => prayer !== undefined) });
+    } catch (error) {
+        console.error('Error listing prayers:', error);
+        res.status(500).send('Error listing prayers');
+    }
+});
+
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
