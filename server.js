@@ -121,7 +121,7 @@ const uploadFiles = async (prayer, audioBuffer, language) => {
     return { audioUrl, textUrl };
 };
 
-app.get('/generate-prayer', cors({ origin: 'https://hamza-eljaouhari.github.io' }), async (req, res) => {
+app.post('/generate-prayer', cors({ origin: 'https://hamza-eljaouhari.github.io' }), async (req, res) => {
     const { topic, writer, language } = req.body;
 
     if (!topics.includes(topic)) {
