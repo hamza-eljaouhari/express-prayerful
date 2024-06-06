@@ -152,6 +152,12 @@ const topics = {
     ]
 };
 
+const languagePrompts = {
+    "english": "Generate a prayer about",
+    "french": "Générer une prière à propos de",
+    "arabic": "توليد صلاة حول"
+};
+
 // Get topics based on language
 app.get('/topics', (req, res) => {
     const { language } = req.query;
