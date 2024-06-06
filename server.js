@@ -21,48 +21,29 @@ const openai = new OpenAI({
 
 const s3Client = new S3Client({ region: process.env.AWS_REGION });
 
-const topics = [
-    "gratitude", "forgiveness", "healing", "strength", "protection",
-    "guidance", "peace", "love", "compassion", "courage",
-    "wisdom", "patience", "faith", "hope", "charity", "kindness",
-    "understanding", "reconciliation", "unity", "humility",
-    "mercy", "justice", "truth", "joy", "grace", "devotion",
-    "reverence", "redemption", "salvation", "praise", "thanksgiving",
-    "intercession", "confession", "consecration", "dedication",
-    "adoration", "benediction", "petition", "supplication",
-    "lamentation", "meditation", "reflection", "renewal",
-    "revival", "restoration", "sanctification", "deliverance",
-    "enlightenment", "faithfulness", "fidelity", "sincerity",
-    "sobriety", "chastity", "simplicity", "stewardship", "evangelism",
-    "discipleship", "servanthood", "mission", "vocation", "ministry",
-    "fellowship", "community", "family", "marriage", "parenting",
-    "friendship", "work", "school", "learning", "teaching", "growth",
-    "maturity", "perseverance", "endurance", "provision", "safety",
-    "peacekeeping", "defense", "healing of nations", "environment",
-    "creation", "animal welfare", "agriculture", "science",
-    "technology", "arts", "literature", "music", "sports", "leisure",
-    "health", "mental health", "well-being", "prosperity", "wealth",
-    "poverty", "equality", "freedom", "human rights", "democracy",
-    "government", "leadership"
-];
+// Get topics based on language
+app.get('/topics', (req, res) => {
+    const { language } = req.query;
+    if (language === 'french') {
+        res.json(topics_fr);
+    } else if (language === 'arabic') {
+        res.json(topics_ar);
+    } else {
+        res.json(topics_en);
+    }
+});
 
-const writers = [
-    "William Shakespeare", "Jane Austen", "Charles Dickens", "Leo Tolstoy", "Mark Twain",
-    "Homer", "Edgar Allan Poe", "J.K. Rowling", "George Orwell", "Ernest Hemingway",
-    "Fyodor Dostoevsky", "Emily Dickinson", "Virginia Woolf", "James Joyce", "Gabriel Garcia Marquez",
-    "Franz Kafka", "F. Scott Fitzgerald", "Herman Melville", "T.S. Eliot", "John Steinbeck",
-    "Oscar Wilde", "Mary Shelley", "H.G. Wells", "George Eliot", "Thomas Hardy",
-    "Ralph Waldo Emerson", "Henry David Thoreau", "Walt Whitman", "Robert Frost", "Maya Angelou",
-    "Sylvia Plath", "Toni Morrison", "Harper Lee", "Kurt Vonnegut", "Ray Bradbury",
-    "J.R.R. Tolkien", "C.S. Lewis", "Isaac Asimov", "Arthur C. Clarke", "Philip K. Dick",
-    "Margaret Atwood", "Ursula K. Le Guin", "Aldous Huxley", "H.P. Lovecraft", "Agatha Christie",
-    "Arthur Conan Doyle", "J.D. Salinger", "Jack Kerouac", "Ernest J. Gaines", "Octavia E. Butler",
-    "Vladimir Nabokov", "E. E. Cummings", "D.H. Lawrence", "William Faulkner", "Tennessee Williams",
-    "L. Frank Baum", "Louisa May Alcott", "Jules Verne", "Robert Louis Stevenson", "Nathaniel Hawthorne",
-    "Charles Baudelaire", "Marcel Proust", "Albert Camus", "Jean-Paul Sartre", "Simone de Beauvoir",
-    "Gabriel Garcia Marquez", "Isabel Allende", "Pablo Neruda", "Jorge Luis Borges", "Carlos Fuentes",
-    "Mario Vargas Llosa", "Miguel de Cervantes", "Edith Wharton", "Thomas Mann", "Herman Hesse"
-];
+// Get writers based on language
+app.get('/writers', (req, res) => {
+    const { language } = req.query;
+    if (language === 'french') {
+        res.json(writers_fr);
+    } else if (language === 'arabic') {
+        res.json(writers_ar);
+    } else {
+        res.json(writers_en);
+    }
+});
 
 const languages = {
     "english": "en",
@@ -81,6 +62,31 @@ const languagePrompts = {
     "french": "Générer une prière à propos de",
     "arabic": "توليد صلاة حول"
 };
+
+// Get topics based on language
+app.get('/topics', (req, res) => {
+    const { language } = req.query;
+    if (language === 'french') {
+        res.json(topics_fr);
+    } else if (language === 'arabic') {
+        res.json(topics_ar);
+    } else {
+        res.json(topics_en);
+    }
+});
+
+// Get writers based on language
+app.get('/writers', (req, res) => {
+    const { language } = req.query;
+    if (language === 'french') {
+        res.json(writers_fr);
+    } else if (language === 'arabic') {
+        res.json(writers_ar);
+    } else {
+        res.json(writers_en);
+    }
+});
+
 
 const uploadFiles = async (prayer, audioBuffer, language) => {
     const uniqueId = uuidv4();
