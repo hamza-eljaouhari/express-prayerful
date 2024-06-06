@@ -3,7 +3,7 @@ const dotenv = require('dotenv');
 const fs = require('fs');
 const util = require('util');
 const OpenAI = require('openai');
-const { S3Client, PutObjectCommand, ListObjectsV2Command, } = require('@aws-sdk/client-s3');
+const { S3Client, PutObjectCommand, ListObjectsV2Command, GetObjectCommand } = require('@aws-sdk/client-s3');
 const axios = require('axios');
 const cors = require('cors');
 const { v4: uuidv4 } = require('uuid');
@@ -183,16 +183,25 @@ app.get('/list-prayers', async (req, res) => {
 
         const response = await s3Client.send(command);
 
-        const prayers = response.Contents.reduce((acc, item) => {
+        const prayers = await Promise.all(response.Contents.map(async (item) => {
             const key = item.Key;
             const url = `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`;
             if (key.endsWith('.mp3')) {
-                acc.push({ audioUrl: url, textUrl: url.replace('.mp3', '.txt') });
-            }
-            return acc;
-        }, []);
+                const textKey = key.replace('.mp3', '.txt');
+                const textCommand = new GetObjectCommand({ Bucket: process.env.S3_BUCKET_NAME, Key: textKey });
+                const textResponse = await s3Client.send(textCommand);
+                const textStream = textResponse.Body;
+                let textData = '';
 
-        res.json({ prayers });
+                for await (const chunk of textStream) {
+                    textData += chunk;
+                }
+
+                return { audioUrl: url, textUrl: url.replace('.mp3', '.txt'), text: textData };
+            }
+        }));
+
+        res.json({ prayers: prayers.filter(prayer => prayer !== undefined) });
     } catch (error) {
         console.error('Error listing prayers:', error);
         res.status(500).send('Error listing prayers');
