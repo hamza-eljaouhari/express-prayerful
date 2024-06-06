@@ -119,7 +119,7 @@ const uploadFiles = async (prayer, audioBuffer, language) => {
     return { audioUrl, textUrl };
 };
 
-app.post('/generate-prayer'), async (req, res) => {
+app.post('/generate-prayer', async (req, res) => {
     const { topic, writer, language } = req.body;
 
     if (!topics.includes(topic)) {
@@ -161,7 +161,7 @@ app.post('/generate-prayer'), async (req, res) => {
         );
 
         const audioContent = ttsResponse.data.audioContent;
-        const audioBuffer = Buffer.from(audioContent, 'base64'); // Define audioBuffer here
+        const audioBuffer = Buffer.from(audioContent, 'base64');
         const { audioUrl, textUrl } = await uploadFiles(prayer, audioBuffer, language);
 
         res.json({ prayer, audioUrl, textUrl, language });
@@ -174,9 +174,9 @@ app.post('/generate-prayer'), async (req, res) => {
         console.error('Error generating prayer and audio:', error.response ? error.response.data : error.message);
         res.status(500).send('Error generating prayer and audio');
     }
-};
+});
 
-app.get('/list-prayers'), async (req, res) => {
+app.get('/list-prayers', async (req, res) => {
     try {
         const command = new ListObjectsV2Command({
             Bucket: process.env.S3_BUCKET_NAME,
@@ -207,7 +207,7 @@ app.get('/list-prayers'), async (req, res) => {
         console.error('Error listing prayers:', error);
         res.status(500).send('Error listing prayers');
     }
-};
+});
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
