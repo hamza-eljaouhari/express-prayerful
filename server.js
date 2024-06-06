@@ -13,9 +13,7 @@ dotenv.config();
 const app = express();
 app.use(express.json());
 // Enable CORS for all routes
-app.use(cors({
-    origin: 'https://hamza-eljaouhari.github.io/prayerful', // Replace with your frontend URL
-}));
+app.use(cors());
 
 const openai = new OpenAI({
     apiKey: process.env['OPENAI_API_KEY'],
@@ -121,7 +119,7 @@ const uploadFiles = async (prayer, audioBuffer, language) => {
     return { audioUrl, textUrl };
 };
 
-app.post('/generate-prayer', cors({ origin: 'https://hamza-eljaouhari.github.io/prayerful' }), async (req, res) => {
+app.post('/generate-prayer'), async (req, res) => {
     const { topic, writer, language } = req.body;
 
     if (!topics.includes(topic)) {
@@ -176,9 +174,9 @@ app.post('/generate-prayer', cors({ origin: 'https://hamza-eljaouhari.github.io/
         console.error('Error generating prayer and audio:', error.response ? error.response.data : error.message);
         res.status(500).send('Error generating prayer and audio');
     }
-});
+};
 
-app.get('/list-prayers', cors({ origin: 'https://hamza-eljaouhari.github.io/prayerful' }), async (req, res) => {
+app.get('/list-prayers'), async (req, res) => {
     try {
         const command = new ListObjectsV2Command({
             Bucket: process.env.S3_BUCKET_NAME,
@@ -209,7 +207,7 @@ app.get('/list-prayers', cors({ origin: 'https://hamza-eljaouhari.github.io/pray
         console.error('Error listing prayers:', error);
         res.status(500).send('Error listing prayers');
     }
-});
+};
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
