@@ -24,7 +24,7 @@ const s3Client = new S3Client({ region: process.env.AWS_REGION });
 const writers_en = [
     "William Shakespeare", "Jane Austen", "Charles Dickens", "Leo Tolstoy", "Mark Twain",
     "Homer", "Edgar Allan Poe", "J.K. Rowling", "George Orwell", "Ernest Hemingway",
-    "Fyodor Dostoevsky", "Emily Dickinson", "Virginia Woolf", "James Joyce", "Gabriel Garcia Marquez",
+    "Fyodor Dostoevsky", "Emily Dickinson", "Virginia Woolf", "James Joyce",
     "Franz Kafka", "F. Scott Fitzgerald", "Herman Melville", "T.S. Eliot", "John Steinbeck",
     "Oscar Wilde", "Mary Shelley", "H.G. Wells", "George Eliot", "Thomas Hardy",
     "Ralph Waldo Emerson", "Henry David Thoreau", "Walt Whitman", "Robert Frost", "Maya Angelou",
@@ -60,7 +60,7 @@ const writers_ar = [
 const writers_fr = [
     "William Shakespeare", "Jane Austen", "Charles Dickens", "Léon Tolstoï", "Mark Twain",
     "Homère", "Edgar Allan Poe", "J.K. Rowling", "George Orwell", "Ernest Hemingway",
-    "Fiodor Dostoïevski", "Emily Dickinson", "Virginia Woolf", "James Joyce", "Gabriel Garcia Marquez",
+    "Fiodor Dostoïevski", "Emily Dickinson", "Virginia Woolf", "James Joyce",
     "Franz Kafka", "F. Scott Fitzgerald", "Herman Melville", "T.S. Eliot", "John Steinbeck",
     "Oscar Wilde", "Mary Shelley", "H.G. Wells", "George Eliot", "Thomas Hardy",
     "Ralph Waldo Emerson", "Henry David Thoreau", "Walt Whitman", "Robert Frost", "Maya Angelou",
