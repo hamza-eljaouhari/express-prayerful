@@ -197,7 +197,7 @@ app.get('/list-prayers', async (req, res) => {
                     textData += chunk;
                 }
 
-                return { audioUrl: url, textUrl: url.replace('.mp3', '.txt'), text: textData };
+                return { audioUrl: url, textUrl: url.replace('.mp3', '.txt').replace('output', 'prayer'), text: textData };
             }
         }));
 
