@@ -81,7 +81,7 @@ const languagePrompts = {
     "arabic": "توليد صلاة حول"
 };
 
-const uploadFiles = async (prayer, language) => {
+const uploadFiles = async (prayer, audioBuffer, language) => {
     const uniqueId = uuidv4();
     const audioFilePath = `output-${uniqueId}-${language}.mp3`;
     const textFilePath = `prayer-${uniqueId}-${language}.txt`;
@@ -160,8 +160,8 @@ app.post('/generate-prayer', async (req, res) => {
         );
 
         const audioContent = ttsResponse.data.audioContent;
-        const audioBuffer = Buffer.from(audioContent, 'base64');
-        const { audioUrl, textUrl } = await uploadFiles(prayer, language);
+        const audioBuffer = Buffer.from(audioContent, 'base64'); // Define audioBuffer here
+        const { audioUrl, textUrl } = await uploadFiles(prayer, audioBuffer, language);
 
         res.json({ prayer, audioUrl, textUrl, language });
 
