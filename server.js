@@ -81,6 +81,43 @@ const languagePrompts = {
     "arabic": "توليد صلاة حول"
 };
 
+const uploadFiles = async (prayer, language) => {
+    const uniqueId = uuidv4();
+    const audioFilePath = `output-${uniqueId}-${language}.mp3`;
+    const textFilePath = `prayer-${uniqueId}-${language}.txt`;
+
+    const writeFile = util.promisify(fs.writeFile);
+    await writeFile(audioFilePath, audioBuffer);
+    await writeFile(textFilePath, prayer);
+
+    const audioFileStream = fs.createReadStream(audioFilePath);
+    const textFileStream = fs.createReadStream(textFilePath);
+
+    const uploadAudioParams = {
+        Bucket: process.env.S3_BUCKET_NAME,
+        Key: audioFilePath,
+        Body: audioFileStream,
+        ContentType: 'audio/mp3',
+        ACL: 'public-read',
+    };
+
+    const uploadTextParams = {
+        Bucket: process.env.S3_BUCKET_NAME,
+        Key: textFilePath,
+        Body: textFileStream,
+        ContentType: 'text/plain',
+        ACL: 'public-read',
+    };
+
+    await s3Client.send(new PutObjectCommand(uploadAudioParams));
+    await s3Client.send(new PutObjectCommand(uploadTextParams));
+
+    const audioUrl = `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${audioFilePath}`;
+    const textUrl = `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${textFilePath}`;
+
+    return { audioUrl, textUrl };
+};
+
 app.post('/generate-prayer', async (req, res) => {
     const { topic, writer, language } = req.body;
 
@@ -124,40 +161,9 @@ app.post('/generate-prayer', async (req, res) => {
 
         const audioContent = ttsResponse.data.audioContent;
         const audioBuffer = Buffer.from(audioContent, 'base64');
-        const uniqueId = uuidv4();
-        const audioFilePath = `output-${uniqueId}.mp3`;
-        const textFilePath = `prayer-${uniqueId}.txt`;
+        const { audioUrl, textUrl } = await uploadFiles(prayer, language);
 
-        const writeFile = util.promisify(fs.writeFile);
-        await writeFile(audioFilePath, audioBuffer);
-        await writeFile(textFilePath, prayer);
-
-        const audioFileStream = fs.createReadStream(audioFilePath);
-        const textFileStream = fs.createReadStream(textFilePath);
-
-        const uploadAudioParams = {
-            Bucket: process.env.S3_BUCKET_NAME,
-            Key: audioFilePath,
-            Body: audioFileStream,
-            ContentType: 'audio/mp3',
-            ACL: 'public-read',
-        };
-
-        const uploadTextParams = {
-            Bucket: process.env.S3_BUCKET_NAME,
-            Key: textFilePath,
-            Body: textFileStream,
-            ContentType: 'text/plain',
-            ACL: 'public-read',
-        };
-
-        await s3Client.send(new PutObjectCommand(uploadAudioParams));
-        await s3Client.send(new PutObjectCommand(uploadTextParams));
-
-        const audioUrl = `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${audioFilePath}`;
-        const textUrl = `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${textFilePath}`;
-
-        res.json({ prayer, audioUrl, textUrl });
+        res.json({ prayer, audioUrl, textUrl, language });
 
         // Cleanup: delete the local files
         fs.unlinkSync(audioFilePath);
