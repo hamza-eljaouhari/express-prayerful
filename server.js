@@ -134,6 +134,8 @@ app.post('/generate-prayer', async (req, res) => {
         return res.status(400).send('Invalid language');
     }
 
+    let audioFilePath, textFilePath;
+
     try {
         const prompt = `${languagePrompts[language]} ${topic}`;
         const response = await openai.chat.completions.create({
@@ -162,17 +164,22 @@ app.post('/generate-prayer', async (req, res) => {
 
         const audioContent = ttsResponse.data.audioContent;
         const audioBuffer = Buffer.from(audioContent, 'base64');
-        const { audioUrl, textUrl } = await uploadFiles(prayer, audioBuffer, language);
+        const result = await uploadFiles(prayer, audioBuffer, language);
 
-        res.json({ prayer, audioUrl, textUrl, language });
+        audioFilePath = result.audioUrl.split('/').pop();
+        textFilePath = result.textUrl.split('/').pop();
 
-        // Cleanup: delete the local files
-        fs.unlinkSync(audioFilePath);
-        fs.unlinkSync(textFilePath);
+        res.json({ prayer, audioUrl: result.audioUrl, textUrl: result.textUrl, language });
 
     } catch (error) {
         console.error('Error generating prayer and audio:', error.response ? error.response.data : error.message);
         res.status(500).send('Error generating prayer and audio');
+    } finally {
+        // Cleanup: delete the local files if they were created
+        if (audioFilePath && textFilePath) {
+            fs.unlinkSync(audioFilePath);
+            fs.unlinkSync(textFilePath);
+        }
     }
 });
 
