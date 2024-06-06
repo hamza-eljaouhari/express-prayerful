@@ -118,7 +118,7 @@ const uploadFiles = async (prayer, audioBuffer, language) => {
     return { audioUrl, textUrl };
 };
 
-app.post('/generate-prayer', async (req, res) => {
+app.get('/generate-prayer', cors({ origin: 'https://hamza-eljaouhari.github.io' }), async (req, res) => {
     const { topic, writer, language } = req.body;
 
     if (!topics.includes(topic)) {
@@ -175,7 +175,7 @@ app.post('/generate-prayer', async (req, res) => {
     }
 });
 
-app.get('/list-prayers', async (req, res) => {
+app.post('/list-prayers', cors({ origin: 'https://hamza-eljaouhari.github.io' }), async (req, res) => {
     try {
         const command = new ListObjectsV2Command({
             Bucket: process.env.S3_BUCKET_NAME,
