@@ -14,7 +14,7 @@ const app = express();
 app.use(express.json());
 // Enable CORS for all routes
 app.use(cors({
-    origin: 'https://hamza-eljaouhari.github.io', // Replace with your frontend URL
+    origin: 'https://hamza-eljaouhari.github.io/prayerful', // Replace with your frontend URL
 }));
 
 const openai = new OpenAI({
@@ -121,7 +121,7 @@ const uploadFiles = async (prayer, audioBuffer, language) => {
     return { audioUrl, textUrl };
 };
 
-app.post('/generate-prayer', cors({ origin: 'https://hamza-eljaouhari.github.io' }), async (req, res) => {
+app.post('/generate-prayer', cors({ origin: 'https://hamza-eljaouhari.github.io/prayerful' }), async (req, res) => {
     const { topic, writer, language } = req.body;
 
     if (!topics.includes(topic)) {
@@ -178,7 +178,7 @@ app.post('/generate-prayer', cors({ origin: 'https://hamza-eljaouhari.github.io'
     }
 });
 
-app.get('/list-prayers', cors({ origin: 'https://hamza-eljaouhari.github.io' }), async (req, res) => {
+app.get('/list-prayers', cors({ origin: 'https://hamza-eljaouhari.github.io/prayerful' }), async (req, res) => {
     try {
         const command = new ListObjectsV2Command({
             Bucket: process.env.S3_BUCKET_NAME,
