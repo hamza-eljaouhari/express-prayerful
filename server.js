@@ -230,16 +230,20 @@ const uploadFiles = async (prayer, audioBuffer, language) => {
 };
 
 
+
 app.post('/generate-poster', async (req, res) => {
     const { text, format, background } = req.body;
     try {
         const canvas = createCanvas(800, 600);
         const ctx = canvas.getContext('2d');
 
+        // Load background image
         const bgImage = await loadImage(`backgrounds/${background}`);
         const imgWidth = bgImage.width;
         const imgHeight = bgImage.height;
-        const scaleFactor = Math.min(canvas.width / imgWidth, canvas.height / imgHeight) * 0.6;
+
+        // Scale image to fit within canvas while preserving aspect ratio
+        const scaleFactor = Math.min((canvas.width * 0.6) / imgWidth, (canvas.height * 0.6) / imgHeight);
         const scaledWidth = imgWidth * scaleFactor;
         const scaledHeight = imgHeight * scaleFactor;
         const xOffset = (canvas.width - scaledWidth) / 2;
@@ -247,26 +251,30 @@ app.post('/generate-poster', async (req, res) => {
 
         ctx.drawImage(bgImage, xOffset, yOffset, scaledWidth, scaledHeight);
 
+        // Add 90% transparent black overlay
         ctx.fillStyle = 'rgba(0, 0, 0, 0.9)';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+        // Add text
         ctx.fillStyle = '#FFFFFF';
         ctx.font = '30px Ubuntu';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(text, canvas.width / 2, canvas.height / 2);
 
+        // Create buffer
         const buffer = canvas.toBuffer(`image/${format}`);
         if (!buffer) {
             throw new Error('Failed to create buffer from canvas');
         }
+
+        // Save buffer to file
         const fileName = `poster-${uuidv4()}.${format}`;
         const filePath = `/tmp/${fileName}`;
-
         fs.writeFileSync(filePath, buffer);
 
+        // Upload to S3
         const fileStream = fs.createReadStream(filePath);
-
         const uploadParams = {
             Bucket: process.env.S3_BUCKET_NAME,
             Key: fileName,
@@ -279,6 +287,7 @@ app.post('/generate-poster', async (req, res) => {
 
         const fileUrl = `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${fileName}`;
 
+        // Cleanup local file
         fs.unlinkSync(filePath);
 
         res.json({ fileUrl });
