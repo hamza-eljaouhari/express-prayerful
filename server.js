@@ -7,6 +7,8 @@ const { S3Client, PutObjectCommand, ListObjectsV2Command, GetObjectCommand } = r
 const axios = require('axios');
 const cors = require('cors');
 const { v4: uuidv4 } = require('uuid');
+const { createCanvas, loadImage, registerFont } = require('canvas');
+const GIFEncoder = require('gif-encoder');
 
 dotenv.config();
 
@@ -21,6 +23,8 @@ const openai = new OpenAI({
 
 const s3Client = new S3Client({ region: process.env.AWS_REGION });
 
+// Register the custom font
+registerFont('fonts/Ubuntu-Regular.ttf', { family: 'Ubuntu' });
 
 // Translated writers
 const writers = {
@@ -158,12 +162,6 @@ const languagePrompts = {
     "arabic": "توليد صلاة حول"
 };
 
-const languages = {
-    "english": "en",
-    "french": "fr",
-    "arabic": "ar"
-};
-
 const voices = {
     "english": { languageCode: "en-US", name: "en-US-Wavenet-D" },
     "french": { languageCode: "fr-FR", name: "fr-FR-Wavenet-A" },
@@ -230,6 +228,111 @@ const uploadFiles = async (prayer, audioBuffer, language) => {
 
     return { audioUrl, textUrl };
 };
+
+app.post('/generate-gif', async (req, res) => {
+    const { text, background } = req.body;
+    try {
+        const encoder = new GIFEncoder(800, 600);
+        const filePath = `/tmp/animation-${uuidv4()}.gif`;
+        const stream = fs.createWriteStream(filePath);
+
+        encoder.createReadStream().pipe(stream);
+
+        encoder.start();
+        encoder.setRepeat(0);
+        encoder.setDelay(500);
+        encoder.setQuality(10);
+
+        for (let i = 0; i < 10; i++) {
+            const canvas = createCanvas(800, 600);
+            const ctx = canvas.getContext('2d');
+
+            const bgImage = await loadImage(`backgrounds/${background}`);
+            ctx.drawImage(bgImage, 0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = '#FFFFFF';
+            ctx.font = '30px Ubuntu';
+            ctx.textAlign = 'center';
+            ctx.fillText(text, canvas.width / 2, canvas.height / 2 + i * 10);
+
+            encoder.addFrame(ctx);
+        }
+
+        encoder.finish();
+
+        stream.on('close', async () => {
+            const fileStream = fs.createReadStream(filePath);
+
+            const uploadParams = {
+                Bucket: process.env.S3_BUCKET_NAME,
+                Key: `animation-${uuidv4()}.gif`,
+                Body: fileStream,
+                ContentType: 'image/gif',
+                ACL: 'public-read',
+            };
+
+            await s3Client.send(new PutObjectCommand(uploadParams));
+
+            const fileUrl = `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/animation-${uuidv4()}.gif`;
+
+            fs.unlinkSync(filePath);
+
+            res.json({ fileUrl });
+        });
+    } catch (error) {
+        console.error('Error generating GIF:', error);
+        res.status(500).send('Error generating GIF');
+    }
+});
+
+app.post('/generate-poster', async (req, res) => {
+    const { text, format, background } = req.body;
+    try {
+        const canvas = createCanvas(800, 600);
+        const ctx = canvas.getContext('2d');
+
+        const bgImage = await loadImage(`backgrounds/${background}`);
+        ctx.drawImage(bgImage, 0, 0, canvas.width, canvas.height);
+
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = '30px Ubuntu';
+        ctx.textAlign = 'center';
+        ctx.fillText(text, canvas.width / 2, canvas.height / 2);
+
+        const buffer = canvas.toBuffer(`image/${format}`);
+        const fileName = `poster-${uuidv4()}.${format}`;
+        const filePath = `/tmp/${fileName}`;
+
+        fs.writeFileSync(filePath, buffer);
+
+        const fileStream = fs.createReadStream(filePath);
+
+        const uploadParams = {
+            Bucket: process.env.S3_BUCKET_NAME,
+            Key: fileName,
+            Body: fileStream,
+            ContentType: `image/${format}`,
+            ACL: 'public-read',
+        };
+
+        await s3Client.send(new PutObjectCommand(uploadParams));
+
+        const fileUrl = `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${fileName}`;
+
+        fs.unlinkSync(filePath);
+
+        res.json({ fileUrl });
+    } catch (error) {
+        console.error('Error generating poster:', error);
+        res.status(500).send('Error generating poster');
+    }
+});
 
 app.post('/generate-prayer', async (req, res) => {
     const { topic, writer, language } = req.body;
