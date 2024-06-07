@@ -164,9 +164,6 @@ const voices = {
     "arabic": { languageCode: "ar-XA", name: "ar-XA-Wavenet-A" }
 };
 
-// Register Ubuntu font using an absolute path
-registerFont(path.join(__dirname, 'fonts/Ubuntu-Regular.ttf'), { family: 'Ubuntu' });
-
 app.get('/topics', (req, res) => {
     const { language } = req.query;
     if (topics[language]) {
