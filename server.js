@@ -229,6 +229,61 @@ const uploadFiles = async (prayer, audioBuffer, language) => {
     return { audioUrl, textUrl };
 };
 
+app.post('/generate-poster', async (req, res) => {
+    const { text, format, background } = req.body;
+    try {
+        const canvas = createCanvas(800, 600);
+        const ctx = canvas.getContext('2d');
+
+        const bgImage = await loadImage(`backgrounds/${background}`);
+        const imgWidth = bgImage.width;
+        const imgHeight = bgImage.height;
+        const scaleFactor = Math.min(canvas.width / imgWidth, canvas.height / imgHeight) * 0.6;
+        const scaledWidth = imgWidth * scaleFactor;
+        const scaledHeight = imgHeight * scaleFactor;
+        const xOffset = (canvas.width - scaledWidth) / 2;
+        const yOffset = (canvas.height - scaledHeight) / 2;
+
+        ctx.drawImage(bgImage, xOffset, yOffset, scaledWidth, scaledHeight);
+
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.9)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = '30px Ubuntu';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(text, canvas.width / 2, canvas.height / 2);
+
+        const buffer = canvas.toBuffer(`image/${format}`);
+        const fileName = `poster-${uuidv4()}.${format}`;
+        const filePath = `/tmp/${fileName}`;
+
+        fs.writeFileSync(filePath, buffer);
+
+        const fileStream = fs.createReadStream(filePath);
+
+        const uploadParams = {
+            Bucket: process.env.S3_BUCKET_NAME,
+            Key: fileName,
+            Body: fileStream,
+            ContentType: `image/${format}`,
+            ACL: 'public-read',
+        };
+
+        await s3Client.send(new PutObjectCommand(uploadParams));
+
+        const fileUrl = `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${fileName}`;
+
+        fs.unlinkSync(filePath);
+
+        res.json({ fileUrl });
+    } catch (error) {
+        console.error('Error generating poster:', error);
+        res.status(500).send('Error generating poster');
+    }
+});
+
 app.post('/generate-gif', async (req, res) => {
     const { text, background } = req.body;
     try {
@@ -248,14 +303,23 @@ app.post('/generate-gif', async (req, res) => {
             const ctx = canvas.getContext('2d');
 
             const bgImage = await loadImage(`backgrounds/${background}`);
-            ctx.drawImage(bgImage, 0, 0, canvas.width, canvas.height);
+            const imgWidth = bgImage.width;
+            const imgHeight = bgImage.height;
+            const scaleFactor = Math.min(canvas.width / imgWidth, canvas.height / imgHeight) * 0.6;
+            const scaledWidth = imgWidth * scaleFactor;
+            const scaledHeight = imgHeight * scaleFactor;
+            const xOffset = (canvas.width - scaledWidth) / 2;
+            const yOffset = (canvas.height - scaledHeight) / 2;
 
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+            ctx.drawImage(bgImage, xOffset, yOffset, scaledWidth, scaledHeight);
+
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.9)';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
             ctx.fillStyle = '#FFFFFF';
             ctx.font = '30px Ubuntu';
             ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
             ctx.fillText(text, canvas.width / 2, canvas.height / 2 + i * 10);
 
             encoder.addFrame(ctx);
@@ -288,51 +352,6 @@ app.post('/generate-gif', async (req, res) => {
     }
 });
 
-app.post('/generate-poster', async (req, res) => {
-    const { text, format, background } = req.body;
-    try {
-        const canvas = createCanvas(800, 600);
-        const ctx = canvas.getContext('2d');
-
-        const bgImage = await loadImage(`backgrounds/${background}`);
-        ctx.drawImage(bgImage, 0, 0, canvas.width, canvas.height);
-
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        ctx.fillStyle = '#FFFFFF';
-        ctx.font = '30px Ubuntu';
-        ctx.textAlign = 'center';
-        ctx.fillText(text, canvas.width / 2, canvas.height / 2);
-
-        const buffer = canvas.toBuffer(`image/${format}`);
-        const fileName = `poster-${uuidv4()}.${format}`;
-        const filePath = `/tmp/${fileName}`;
-
-        fs.writeFileSync(filePath, buffer);
-
-        const fileStream = fs.createReadStream(filePath);
-
-        const uploadParams = {
-            Bucket: process.env.S3_BUCKET_NAME,
-            Key: fileName,
-            Body: fileStream,
-            ContentType: `image/${format}`,
-            ACL: 'public-read',
-        };
-
-        await s3Client.send(new PutObjectCommand(uploadParams));
-
-        const fileUrl = `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${fileName}`;
-
-        fs.unlinkSync(filePath);
-
-        res.json({ fileUrl });
-    } catch (error) {
-        console.error('Error generating poster:', error);
-        res.status(500).send('Error generating poster');
-    }
-});
 
 app.post('/generate-prayer', async (req, res) => {
     const { topic, writer, language } = req.body;
