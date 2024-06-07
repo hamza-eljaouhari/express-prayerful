@@ -8,13 +8,14 @@ const axios = require('axios');
 const cors = require('cors');
 const { v4: uuidv4 } = require('uuid');
 const { createCanvas, loadImage, registerFont } = require('canvas');
+const path = require('path');
 const GIFEncoder = require('gif-encoder');
 
+// Load environment variables from .env file
 dotenv.config();
 
 const app = express();
 app.use(express.json());
-// Enable CORS for all routes
 app.use(cors());
 
 const openai = new OpenAI({
@@ -22,9 +23,6 @@ const openai = new OpenAI({
 });
 
 const s3Client = new S3Client({ region: process.env.AWS_REGION });
-
-// Register the custom font
-registerFont('fonts/Ubuntu-Regular.ttf', { family: 'Ubuntu' });
 
 // Translated writers
 const writers = {
@@ -168,7 +166,9 @@ const voices = {
     "arabic": { languageCode: "ar-XA", name: "ar-XA-Wavenet-A" }
 };
 
-// Get topics based on language
+// Register Ubuntu font using an absolute path
+registerFont(path.join(__dirname, 'fonts/Ubuntu-Regular.ttf'), { family: 'Ubuntu' });
+
 app.get('/topics', (req, res) => {
     const { language } = req.query;
     if (topics[language]) {
@@ -178,7 +178,6 @@ app.get('/topics', (req, res) => {
     }
 });
 
-// Get writers based on language
 app.get('/writers', (req, res) => {
     const { language } = req.query;
     if (writers[language]) {
@@ -222,14 +221,60 @@ const uploadFiles = async (prayer, audioBuffer, language) => {
     const audioUrl = `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${audioFilePath}`;
     const textUrl = `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${textFilePath}`;
 
-    // Cleanup: delete the local files
     fs.unlinkSync(audioFilePath);
     fs.unlinkSync(textFilePath);
 
     return { audioUrl, textUrl };
 };
 
+app.post('/generate-prayer', async (req, res) => {
+    const { topic, writer, language } = req.body;
 
+    if (!topics[language] || !topics[language].includes(topic)) {
+        return res.status(400).send('Invalid topic');
+    }
+
+    if (!writers[language] || !writers[language].includes(writer)) {
+        return res.status(400).send('Invalid writer');
+    }
+
+    try {
+        const prompt = `${languagePrompts[language]} ${topic}`;
+        const response = await openai.chat.completions.create({
+            model: 'gpt-3.5-turbo',
+            messages: [{ role: 'user', content: prompt }],
+        });
+
+        const prayer = response.choices[0].message.content.trim();
+        const voiceConfig = voices[language];
+
+        const ttsPayload = {
+            input: { text: prayer },
+            voice: { name: voiceConfig.name, languageCode: voiceConfig.languageCode, ssmlGender: 'FEMALE' },
+            audioConfig: { audioEncoding: 'MP3', speakingRate: 1.0, pitch: 0 },
+        };
+
+        const ttsResponse = await axios.post(
+            `https://texttospeech.googleapis.com/v1/text:synthesize?key=${process.env.GOOGLE_API_KEY}`,
+            ttsPayload,
+            {
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            }
+        );
+
+        const audioContent = ttsResponse.data.audioContent;
+        const audioBuffer = Buffer.from(audioContent, 'base64');
+        const { audioUrl, textUrl } = await uploadFiles(prayer, audioBuffer, language);
+
+        res.json({ prayer, audioUrl, textUrl, language });
+
+    } catch (error) {
+        console.error('Error generating prayer and audio:', error.response ? error.response.data : error.message);
+        res.status(500).send('Error generating prayer and audio');
+    }
+});
 
 app.post('/generate-poster', async (req, res) => {
     const { text, format, background } = req.body;
@@ -238,7 +283,7 @@ app.post('/generate-poster', async (req, res) => {
         const ctx = canvas.getContext('2d');
 
         // Load background image
-        const bgImage = await loadImage(`backgrounds/${background}`);
+        const bgImage = await loadImage(path.join(__dirname, 'backgrounds', background));
         const imgWidth = bgImage.width;
         const imgHeight = bgImage.height;
 
@@ -315,7 +360,7 @@ app.post('/generate-gif', async (req, res) => {
             const canvas = createCanvas(800, 600);
             const ctx = canvas.getContext('2d');
 
-            const bgImage = await loadImage(`backgrounds/${background}`);
+            const bgImage = await loadImage(path.join(__dirname, 'backgrounds', background));
             const imgWidth = bgImage.width;
             const imgHeight = bgImage.height;
             const scaleFactor = Math.min(canvas.width / imgWidth, canvas.height / imgHeight) * 0.6;
@@ -362,55 +407,6 @@ app.post('/generate-gif', async (req, res) => {
     } catch (error) {
         console.error('Error generating GIF:', error);
         res.status(500).send('Error generating GIF');
-    }
-});
-
-app.post('/generate-prayer', async (req, res) => {
-    const { topic, writer, language } = req.body;
-
-    if (!topics[language] || !topics[language].includes(topic)) {
-        return res.status(400).send('Invalid topic');
-    }
-
-    if (!writers[language] || !writers[language].includes(writer)) {
-        return res.status(400).send('Invalid writer');
-    }
-
-    try {
-        const prompt = `${languagePrompts[language]} ${topic}`;
-        const response = await openai.chat.completions.create({
-            model: 'gpt-3.5-turbo',
-            messages: [{ role: 'user', content: prompt }],
-        });
-
-        const prayer = response.choices[0].message.content.trim();
-        const voiceConfig = voices[language];
-
-        const ttsPayload = {
-            input: { text: prayer },
-            voice: { name: voiceConfig.name, languageCode: voiceConfig.languageCode, ssmlGender: 'FEMALE' },
-            audioConfig: { audioEncoding: 'MP3', speakingRate: 1.0, pitch: 0 },
-        };
-
-        const ttsResponse = await axios.post(
-            `https://texttospeech.googleapis.com/v1/text:synthesize?key=${process.env.GOOGLE_API_KEY}`,
-            ttsPayload,
-            {
-                headers: {
-                    'Content-Type': 'application/json',
-                }
-            }
-        );
-
-        const audioContent = ttsResponse.data.audioContent;
-        const audioBuffer = Buffer.from(audioContent, 'base64');
-        const { audioUrl, textUrl } = await uploadFiles(prayer, audioBuffer, language);
-
-        res.json({ prayer, audioUrl, textUrl, language });
-
-    } catch (error) {
-        console.error('Error generating prayer and audio:', error.response ? error.response.data : error.message);
-        res.status(500).send('Error generating prayer and audio');
     }
 });
 
