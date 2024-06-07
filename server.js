@@ -229,6 +229,7 @@ const uploadFiles = async (prayer, audioBuffer, language) => {
     return { audioUrl, textUrl };
 };
 
+
 app.post('/generate-poster', async (req, res) => {
     const { text, format, background } = req.body;
     try {
@@ -256,6 +257,9 @@ app.post('/generate-poster', async (req, res) => {
         ctx.fillText(text, canvas.width / 2, canvas.height / 2);
 
         const buffer = canvas.toBuffer(`image/${format}`);
+        if (!buffer) {
+            throw new Error('Failed to create buffer from canvas');
+        }
         const fileName = `poster-${uuidv4()}.${format}`;
         const filePath = `/tmp/${fileName}`;
 
@@ -351,7 +355,6 @@ app.post('/generate-gif', async (req, res) => {
         res.status(500).send('Error generating GIF');
     }
 });
-
 
 app.post('/generate-prayer', async (req, res) => {
     const { topic, writer, language } = req.body;
