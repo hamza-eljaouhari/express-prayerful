@@ -8,7 +8,6 @@ const axios = require('axios');
 const cors = require('cors');
 const { v4: uuidv4 } = require('uuid');
 const path = require('path');
-const GIFEncoder = require('gif-encoder');
 
 // Load environment variables from .env file
 dotenv.config();
